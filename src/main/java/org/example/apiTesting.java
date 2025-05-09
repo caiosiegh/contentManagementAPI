@@ -1,6 +1,7 @@
 package org.example;
 
 import io.restassured.internal.path.json.mapping.JsonObjectDeserializer;
+import io.restassured.response.Response;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.json.simple.JSONObject;
@@ -13,7 +14,7 @@ import static org.hamcrest.Matchers.*;
 import io.restassured.http.ContentType;
 
 public class apiTesting {
-    String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRhN2E1OWQyLWRlYjEtNGE5Yy04MDQ5LTQ1NGE0MDI4NDdhZCIsImlhdCI6MTc0NjU2NTE0NCwiZXhwIjoxNzQ2NjUxNTQ0fQ.nW47ZniEcIMWwEjldjHhJkBMDe8_XeDoHYb11mygjqs";
+    String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRhN2E1OWQyLWRlYjEtNGE5Yy04MDQ5LTQ1NGE0MDI4NDdhZCIsImlhdCI6MTc0Njc0MzMxOCwiZXhwIjoxNzQ2ODI5NzE4fQ.lLecnm6vj0uGoRcCgCWKgghblZ6-Kp0Ixl3_-w2eDNs";
     Faker faker = new Faker();
 
     @BeforeClass
@@ -300,6 +301,92 @@ public class apiTesting {
         given().contentType(ContentType.JSON).auth().oauth2(tokenJWT).when()
                 .get("/usuarios/" + id).then().body("erro", equalTo("Token inválido")).log().all().statusCode(401);
 
+    }
+
+    @Test
+    public void atualizarUmUsuario() {
+        String id = "6eed49cc-256e-4fbe-96d5-6d79a0003e9b";
+        Usuario usuario = new Usuario();
+        usuario.setNomeCompleto(faker.name().fullName());
+        usuario.setNomeUsuario(faker.name().username());
+        usuario.setEmail("switchEmail@teste.com");
+        usuario.setSenha("Teste123");
+
+
+        given().contentType(ContentType.JSON)
+                .auth().oauth2(token)
+                .body(usuario).when().put("/usuarios/" + id).then()
+                .body("nomeCompleto", equalTo(usuario.getNomeCompleto()), "nomeUsuario", equalTo(usuario.getNomeUsuario()))
+                .log().all().statusCode(200);
+    }
+
+    @Test
+    public void atualizarUmUsuarioSemToken() {
+        String id = "6eed49cc-256e-4fbe-96d5-6d79a0003e9b";
+        Usuario usuario = new Usuario();
+        usuario.setNomeCompleto(faker.name().fullName());
+        usuario.setNomeUsuario(faker.name().username());
+        usuario.setEmail("switchEmail@teste.com");
+        usuario.setSenha("Teste123");
+
+
+        given().contentType(ContentType.JSON)
+                .body(usuario).when().put("/usuarios/" + id).then()
+                .body("erro", equalTo("Token não fornecido"))
+                .log().all().statusCode(401);
+    }
+
+    @Test
+    public void nomeDeUsuarioJaEstaEmUso() {
+        String id = "ccfbd144-e9bf-402a-bd5a-e26259a13c33";
+        Usuario usuario = new Usuario();
+        usuario.setNomeCompleto(faker.name().fullName());
+        usuario.setNomeUsuario("UserTesting");
+        usuario.setEmail("switchEmail@teste.com");
+        usuario.setSenha("Teste123");
+
+
+        given().contentType(ContentType.JSON)
+                .auth().oauth2(token)
+                .body(usuario).when().put("/usuarios/" + id).then()
+                .body("erro", equalTo("Nome de usuário já está em uso"))
+                .log().all().statusCode(400);
+    }
+
+    @Test
+    public void excluirUsuario() {
+
+        //Teste Auto Sufuciente, vou criar um usuário e exluir no mesmo teste
+
+        Usuario usuario = new Usuario();
+        usuario.setNomeCompleto(faker.name().fullName());
+        usuario.setNomeUsuario(faker.name().username());
+        usuario.setEmail(faker.internet().emailAddress());
+        usuario.setSenha(faker.internet()
+                .password(15, 20, true, true, true));
+
+        Response response = given().contentType(ContentType.JSON)
+                .body(usuario).when().post("/usuarios");
+
+        String id = response.then().statusCode(201).log().all().extract().path("id");
+
+        //Excluir Usuário
+        given().contentType(ContentType.JSON)
+                .pathParam("id", id)
+                .auth().oauth2(token)
+                .when().delete("/usuarios/{id}").then()
+                .log().all().statusCode(204);
+    }
+
+    @Test
+    public void excluirUsuarioNaoEncontrado() {
+
+        given().contentType(ContentType.JSON)
+                .pathParam("id", "notAnValidId")
+                .auth().oauth2(token)
+                .when().delete("/usuarios/{id}").then()
+                .body("erro", equalTo("Usuário não encontrado"))
+                .log().all().statusCode(404);
     }
 
 }

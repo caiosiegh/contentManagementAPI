@@ -2,10 +2,10 @@ package org.example;
 
 public class Usuario {
 
-    public String nomeCompleto;
-    public String nomeUsuario;
-    public String email;
-    public String senha;
+    private String nomeCompleto;
+    private String nomeUsuario;
+    private String email;
+    private String senha;
 
     public String getNomeCompleto() {
         return nomeCompleto;
