@@ -6,6 +6,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.json.simple.JSONObject;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 
 import com.github.javafaker.Faker;
@@ -160,7 +162,7 @@ public class apiTesting {
     }
 
     @Test
-    public void criarUmNovoUsuarioSenhaSemCaractere() {
+    public void criarUmNovoUsuarioSenhaSemNumero() {
         Usuario usuario = new Usuario();
         usuario.setNomeCompleto(faker.name().fullName());
         usuario.setNomeUsuario(faker.name().username());
@@ -537,6 +539,22 @@ public class apiTesting {
 
         given().auth().oauth2(token).pathParam("id", id).when().delete("categorias/{id}")
                 .then().body("erro", equalTo("Categoria não encontrada")).statusCode(404).log().all();
+    }
+
+    //Nome autor é na verdade o nome_usuario no Banco de Dados.
+    @Test
+    public void criarUmNovoArtigo() {
+
+        Artigo artigo = new Artigo();
+        artigo.setTitulo("Meu Primeiro Artigo");
+        artigo.setConteudo("Como criar um artigo");
+        artigo.setNomeAutor("sharyl.hintz");
+        artigo.setNomeCategoria("Tecnologia");
+
+        given().auth().oauth2(token).contentType(ContentType.JSON)
+                .body(artigo).when().post("/artigos").then()
+                .log().body().statusCode(201).body("autor.nomeUsuario", equalTo(artigo.getNomeAutor()));
+
     }
 
 }
