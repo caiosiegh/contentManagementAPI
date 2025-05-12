@@ -14,7 +14,7 @@ import static org.hamcrest.Matchers.*;
 import io.restassured.http.ContentType;
 
 public class apiTesting {
-    String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRhN2E1OWQyLWRlYjEtNGE5Yy04MDQ5LTQ1NGE0MDI4NDdhZCIsImlhdCI6MTc0Njc0MzMxOCwiZXhwIjoxNzQ2ODI5NzE4fQ.lLecnm6vj0uGoRcCgCWKgghblZ6-Kp0Ixl3_-w2eDNs";
+    String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRhN2E1OWQyLWRlYjEtNGE5Yy04MDQ5LTQ1NGE0MDI4NDdhZCIsImlhdCI6MTc0NzA3NTU4OCwiZXhwIjoxNzQ3MTYxOTg4fQ.FT1054nOGPut7UL2VaiHX0xTgD0EQrynVYuF-dvMxec";
     Faker faker = new Faker();
 
     @BeforeClass
@@ -34,14 +34,7 @@ public class apiTesting {
 
     @Test
     public void criarUmNovoUsuario() {
-        Usuario usuario = new Usuario();
-        usuario.setNomeCompleto(faker.name().fullName());
-        usuario.setNomeUsuario(faker.name().username());
-        usuario.setEmail(faker.internet().emailAddress());
-        usuario.setSenha(faker.internet()
-                .password(15, 20, true, true, true));
-
-
+        Usuario usuario = criarUsuario.criarUsuarioValido();
         given().contentType(ContentType.JSON).body(usuario).when().post("/usuarios").then().log().all().statusCode(201);
     }
 
@@ -182,8 +175,7 @@ public class apiTesting {
 
     }
 
-    /*Teste com Erro
-    @Test
+    @Test(enabled = false)
     public void criarUmNovoUsuarioNomeComlpetoSemString() {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("nomeCompleto", "111111");
@@ -199,10 +191,8 @@ public class apiTesting {
                 .post("/usuarios").then().log().all().statusCode(201);
 
     }
-     */
 
-    /*Teste com Erro - Não deveria ser possível criar usuario somente com números
-    @Test
+    @Test(enabled = false)
     public void criarUmNovoUsuarioNomeUsuarioSemString() {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("nomeCompleto", faker.name().fullName());
@@ -218,7 +208,6 @@ public class apiTesting {
                 .post("/usuarios").then().log().all().statusCode(201);
 
     }
-     */
 
     @Test
     public void criarUmNovoUsuarioEmailSemString() {
@@ -376,6 +365,13 @@ public class apiTesting {
                 .auth().oauth2(token)
                 .when().delete("/usuarios/{id}").then()
                 .log().all().statusCode(204);
+
+        given().contentType(ContentType.JSON)
+                .pathParam("id", id)
+                .auth().oauth2(token)
+                .when().get("/usuarios/{id}").then()
+                .body("erro", equalTo("Usuário não encontrado"))
+                .log().all().statusCode(404);
     }
 
     @Test
@@ -387,6 +383,160 @@ public class apiTesting {
                 .when().delete("/usuarios/{id}").then()
                 .body("erro", equalTo("Usuário não encontrado"))
                 .log().all().statusCode(404);
+    }
+
+    @Test
+    public void criarCategoriaComSucesso() {
+
+        Categorias categorias = new Categorias();
+        categorias.setNome(faker.commerce().productName());
+        categorias.setDescricao("Mouse Game");
+
+        given().contentType(ContentType.JSON)
+                .auth().oauth2(token)
+                .body(categorias)
+                .when().post("/categorias").then()
+                .body("nome", equalTo(categorias.getNome()), "descricao", equalTo(categorias.getDescricao()))
+                .log().all().statusCode(201);
+    }
+
+    @Test
+    public void criarCategoriaComMesmoNome() {
+
+        Categorias categorias = new Categorias();
+        categorias.setNome("Sleek Granite Shoes");
+        categorias.setDescricao("Sapato");
+
+        given().contentType(ContentType.JSON)
+                .auth().oauth2(token)
+                .body(categorias)
+                .when().post("/categorias").then()
+                .body("erro", equalTo("Nome de categoria já existe"))
+                .log().all().statusCode(400);
+    }
+
+    @Test
+    public void criarCategoriaSemToken() {
+
+        Categorias categorias = new Categorias();
+        categorias.setNome("Sleek Granite Shoes");
+        categorias.setDescricao("Sapato");
+
+        given().contentType(ContentType.JSON)
+                .body(categorias)
+                .when().post("/categorias").then()
+                .body("erro", equalTo("Token não fornecido"))
+                .log().all().statusCode(401);
+    }
+
+    @Test(enabled = false)
+    public void criarCategoriaDadosInvalidos() {
+
+        Categorias categorias = new Categorias();
+        categorias.setNome("My Category");
+        categorias.setDescricao("My Description");
+
+        given().contentType(ContentType.JSON)
+                .auth().oauth2(token)
+                .body(categorias)
+                .when().post("/categorias").then()
+                .log().all().statusCode(200);
+    }
+
+    @Test
+    public void listarCategorias() {
+
+        given()
+                .auth().oauth2(token)
+                .when().get("/categorias").then()
+                .body("id", everyItem(not(anyOf(nullValue(), is("")))))
+                .log().all().statusCode(200);
+    }
+
+    @Test
+    public void listarCategoriasPorID() {
+
+        String id = "683a2773-6f6a-430e-8246-18cd46e66dac";
+
+
+        given().auth().oauth2(token).pathParam("id", id).when().get("categorias/{id}")
+                .then().body("id", equalTo(id)).log().all().statusCode(200);
+
+    }
+
+    @Test
+    public void listarCategoriasPorIDinvalido() {
+
+        String id = "Invalid ID";
+
+
+        given().auth().oauth2(token).pathParam("id", id).when().get("categorias/{id}")
+                .then().body("erro", equalTo("Categoria não encontrada")).log().all().statusCode(404);
+
+    }
+
+    @Test
+    public void listarCategoriasPorIDSemToken() {
+
+        String id = "683a2773-6f6a-430e-8246-18cd46e66dac";
+
+
+        given().pathParam("id", id).when().get("categorias/{id}")
+                .then().body("erro", equalTo("Token não fornecido")).log().all().statusCode(401);
+
+    }
+
+    @Test
+    public void atualizarDescricaoCategoria() {
+
+        Categorias categorias = new Categorias();
+        categorias.setNome("Teste");
+        categorias.setDescricao("Testando o Endpoit de Atualizar Categoria");
+        String id = "abd0c23d-9f31-412a-afc9-3e6dfb26b11a";
+
+
+        given().auth().oauth2(token).contentType(ContentType.JSON)
+                .pathParam("id", id)
+                .body(categorias).when().put("categorias/{id}")
+                .then()
+                .log().body().statusCode(200)
+                .body("descricao", equalTo(categorias.getDescricao()));
+
+    }
+
+    @Test
+    public void CriarExcluirEVerificarexclusaoDaCategoria() {
+
+        //Criando uma categoria com sucesso
+        Categorias categorias = new Categorias();
+        categorias.setNome("Criando uma Categoria");
+        categorias.setDescricao("Categoria que vai ser excluida");
+
+
+        Response response = given().auth().oauth2(token).contentType(ContentType.JSON)
+                .body(categorias).when().post("categorias");
+
+                String id = response.then()
+                .log().body().statusCode(201)
+                .body("nome", equalTo(categorias.getNome()), "descricao", equalTo(categorias.getDescricao()))
+                        .extract().path("id");
+
+                //Excluir Categoria Criada
+                given().auth().oauth2(token).pathParam("id", id).when().delete("categorias/{id}")
+                        .then().statusCode(204).log().all();
+
+                //Verificando se a categoria foi excluída
+                given().auth().oauth2(token).pathParam("id", id).when().get("categorias/{id}")
+                .then().body("erro", equalTo("Categoria não encontrada")).log().all().statusCode(404);
+    }
+
+    @Test
+    public void ExcluirCategoriaNaoExistente() {
+
+        String id = "ID Não Existente";
+
+        given().auth().oauth2(token).pathParam("id", id).when().delete("categorias/{id}")
+                .then().body("erro", equalTo("Categoria não encontrada")).statusCode(404).log().all();
     }
 
 }
