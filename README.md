@@ -1,15 +1,14 @@
 # 🧪 Suíte de Testes - CMS For QA's (API de Gestão de Conteúdo)
 
-Esta suíte cobre testes automatizados de uma API REST voltada para gerenciamento de conteúdo, incluindo usuários, categorias e artigos.
+Esta suíte cobre testes automatizados de uma API REST voltada para gerenciamento de conteúdo, incluindo usuários, categorias e autenticação.
 
 ---
 
 ## 📌 Endpoints Cobertos
 
-- Autenticação
-- Usuários
-- Categorias
-- Artigos
+- 🔐 Autenticação
+- 👤 Usuários
+- 🗂️ Categorias
 
 ---
 
@@ -26,99 +25,89 @@ Esta suíte cobre testes automatizados de uma API REST voltada para gerenciament
 
 ## ✅ Cobertura de Testes
 
-### 🔐 POST - Criar um novo usuário
+### 🔐 Autenticação
 
-- **Funcionalidade**: Criação de um novo usuário no banco de dados.
-- **Dados de entrada**: Nome completo, nome de usuário, e-mail, senha.
-- **Resposta esperada**:
-  - Status HTTP `201 Created`
-  - Corpo da resposta com os dados do usuário criado e um ID único.
-
----
-
-### 🔐 POST - Login do usuário
-
-- **Funcionalidade**: Autenticação do usuário para obtenção de token JWT.
-- **Pré-condição**: Usuário previamente cadastrado no banco de dados.
-- **Dados de entrada**: E-mail e senha.
-- **Resposta esperada**:
-  - Status HTTP `200 OK`
-  - Token JWT no corpo da resposta.
+#### ✅ POST - Login do usuário
+- **Objetivo:** Autenticar usuário e obter token JWT.
+- **Pré-condição:** Usuário cadastrado.
+- **Dados:** E-mail e senha.
+- **Resposta esperada:** `200 OK` com token.
 
 ---
 
-### ❌ POST - Criar usuário sem nome completo
+### 👤 Usuários
 
-- **Objetivo**: Verificar a resposta da API ao enviar o nome completo em branco.
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem de erro indicando que o campo é obrigatório.
+#### ✅ POST - Criar novo usuário
+- **Objetivo:** Criar novo usuário com dados válidos.
+- **Resposta esperada:** `201 Created` com dados e ID.
 
----
-
-### ❌ POST - Criar usuário sem nome de usuário
-
-- **Objetivo**: Verificar a resposta da API ao enviar o nome de usuário em branco.
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem de erro indicando que o campo é obrigatório.
-
----
-
-### ❌ POST - Criar usuário sem e-mail
-
-- **Objetivo**: Verificar a resposta da API ao enviar o e-mail em branco.
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem de erro indicando que o e-mail é inválido.
+#### ❌ POST - Criar usuário com campos inválidos ou ausentes
+- Sem nome completo → `400 Bad Request` + mensagem obrigatória.
+- Sem nome de usuário → `400 Bad Request` + mensagem obrigatória.
+- Sem e-mail → `400 Bad Request` + e-mail inválido.
+- E-mail mal formatado → `400 Bad Request` + e-mail inválido.
+- Sem senha → `400 Bad Request` + múltiplas mensagens:
+  - Senha deve ter no mínimo 6 caracteres  
+  - Senha deve conter pelo menos um número  
+  - Senha deve conter pelo menos uma letra maiúscula  
+- Senha curta (ex: `Teste`) → `400 Bad Request` + "Senha deve ter no mínimo 6 caracteres".
+- Senha sem letra maiúscula (ex: `teste1`) → `400 Bad Request` + "Senha deve conter pelo menos uma letra maiúscula".
+- Senha sem número (ex: `Testee`) → `400 Bad Request` + "Senha deve conter pelo menos um número".
 
 ---
 
-### ❌ POST - Criar usuário com e-mail mal formatado
+#### ✅ GET - Listar usuários
+- Todos os usuários → `200 OK`
+- Por nome de usuário → `200 OK` com resultado ou lista vazia
+- Por e-mail → `200 OK` com resultado ou lista vazia
+- Por ID → `200 OK` ou `404 Not Found` + "Usuário não encontrado"
 
-- **Objetivo**: Verificar a resposta da API ao enviar e-mail sem `@` ou com `@@`.
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem de erro indicando e-mail inválido.
-
----
-
-### ❌ POST - Criar usuário sem senha
-
-- **Objetivo**: Verificar a resposta da API ao enviar senha em branco.
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagens de erro:
-    - "Senha deve ter no mínimo 6 caracteres"
-    - "Senha deve conter pelo menos um número"
-    - "Senha deve conter pelo menos uma letra maiúscula"
+#### ❌ GET - Usuário sem token
+- **Resposta esperada:** `401 Unauthorized` + "Token inválido"
 
 ---
 
-### ❌ POST - Criar usuário com senha curta
+#### ✅ PUT - Atualizar usuário
+- Atualização válida → `200 OK` com dados atualizados
 
-- **Objetivo**: Verificar a resposta ao usar senha com menos de 6 caracteres.
-- **Senha usada**: `Teste`
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem: "Senha deve ter no mínimo 6 caracteres"
-
----
-
-### ❌ POST - Criar usuário com senha sem letra maiúscula
-
-- **Objetivo**: Verificar a resposta ao usar senha sem letras maiúsculas.
-- **Senha usada**: `teste1`
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem: "Senha deve conter pelo menos uma letra maiúscula"
+#### ❌ PUT - Atualizar com erro
+- Sem token → `401 Unauthorized` + "Token não fornecido"
+- Nome de usuário duplicado → `400 Bad Request` + "Nome de usuário já está em uso"
 
 ---
 
-### ❌ POST - Criar usuário com senha sem número
+#### ✅ DELETE - Excluir usuário
+- Criar → Excluir → Buscar → Confirmar `204 No Content` e `404 Not Found`
 
-- **Objetivo**: Verificar a resposta ao usar senha sem números.
-- **Senha usada**: `Testee`
-- **Resposta esperada**:
-  - Status HTTP `400 Bad Request`
-  - Mensagem: "Senha deve conter pelo menos um número"
+#### ❌ DELETE - Usuário inexistente
+- **Resposta esperada:** `404 Not Found` + "Usuário não encontrado"
+
+---
+
+### 🗂️ Categorias
+
+#### ✅ POST - Criar nova categoria
+- **Resposta esperada:** `201 Created` com dados
+
+#### ❌ POST - Criar categoria inválida
+- Nome duplicado → `400 Bad Request` + "Nome de categoria já existe"
+- Sem token → `401 Unauthorized` + "Token não fornecido"
+
+---
+
+#### ✅ GET - Listar categorias
+- Todas → `200 OK`
+- Por ID → `200 OK` com dados
+
+#### ❌ GET - Categoria inválida
+- ID inexistente → `404 Not Found` + "Categoria não encontrada"
+- Sem token → `401 Unauthorized` + "Token não fornecido"
+
+---
+
+📌 _Os testes desabilitados com `enabled = false` foram ignorados neste relatório para manter a consistência com a execução atual da suíte._
+
+---
+
+🎯 **Total de testes documentados:** 30+  
+📅 **Atualizado em:** 13 de maio de 2025
